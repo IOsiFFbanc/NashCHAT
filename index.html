@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Мы - Чат</title>
+</head>
+<body>
+    <div id="login-screen">
+        <h1>Мы - Общий чат</h1>
+        <input type="text" id="user-name" placeholder="Введите ваше имя">
+        <button onclick="startChat()">Войти в чат</button>
+    </div>
+
+    <div id="chat-screen" style="display: none;">
+        <h2>Чат "Мы"</h2>
+        <div id="messages" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;"></div>
+        <input type="text" id="message-input" placeholder="Введите сообщение" style="width: 80%;">
+        <button onclick="sendMessage()">Отправить</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <script>
+        // Firebase конфигурация
+        const firebaseConfig = {
+            apiKey: "AIzaSyBx_47h2PDtDNKyJspTU3sAexICynyIbAU",
+            authDomain: "chatnash-4d8bd.firebaseapp.com",
+            databaseURL: "https://chatnash-4d8bd-default-rtdb.firebaseio.com",
+            projectId: "chatnash-4d8bd",
+            storageBucket: "chatnash-4d8bd.firebasestorage.app",
+            messagingSenderId: "790700361393",
+            appId: "1:790700361393:web:69a5db26291e862fcb8490"
+        };
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        let userName = '';
+        let userId = Math.random().toString(36).substring(2);
+
+        function startChat() {
+            const nameInput = document.getElementById('user-name');
+            userName = nameInput.value.trim();
+            
+            if (!userName) {
+                alert('Введите имя');
+                return;
+            }
+
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('chat-screen').style.display = 'block';
+            
+            loadMessages();
+            document.getElementById('message-input').focus();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            
+            if (!text || !userName) return;
+
+            const messagesRef = database.ref('messages');
+            
+            messagesRef.push({
+                text: text,
+                userName: userName,
+                userId: userId,
+                timestamp: Date.now(),
+                time: new Date().toLocaleTimeString()
+            }).then(() => {
+                input.value = '';
+                input.focus();
+            }).catch((error) => {
+                console.error('Ошибка отправки:', error);
+                alert('Ошибка отправки сообщения');
+            });
+        }
+
+        function loadMessages() {
+            const messagesRef = database.ref('messages');
+            
+            messagesRef.on('child_added', (snapshot) => {
+                const message = snapshot.val();
+                displayMessage(message);
+                
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+        }
+
+        function displayMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            
+            const isMyMessage = message.userId === userId;
+            const senderText = isMyMessage ? 'Вы' : message.userName;
+            
+            messageDiv.innerHTML = `<strong>${senderText}</strong> (${message.time || 'недавно'}): ${message.text}`;
+            messagesDiv.appendChild(messageDiv);
+        }
+
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        document.getElementById('user-name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                startChat();
+            }
+        });
+    </script>
+</body>
+</html>
